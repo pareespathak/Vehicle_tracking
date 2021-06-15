@@ -21,6 +21,9 @@ sheet1.write(0, 1, 'id')
 sheet1.write(0, 2, 'frame_no')
 sheet1.write(0, 3, 'x')
 sheet1.write(0, 4, 'y')
+sheet1.write(0, 7, 'x_real')
+sheet1.write(0, 8, 'y_real')
+sheet1.write(0, 4, 'y_scale.')
 #sheet1.write(0, 5, 'type')
 sheet1.write(0, 5, 'type and confidence')
 
@@ -28,12 +31,15 @@ sheet1.write(0, 5, 'type and confidence')
 # CONF_THRESHOLD is confidence threshold. Only detection with confidence greater than this will be retained
 # NMS_THRESHOLD is used for non-max suppression
 CONF_THRESHOLD = 0.3
+#NMS to overcome the multiple boxes over single object
 NMS_THRESHOLD = 0.4
 list_of_vehicles = ["car","bus","truck", "train"]
+
+#to store coordinates of particular vehicle (inside vehicle count block)
 X_plot,Y_plot = [],[]
 # PURPOSE: Draw all the detection boxes with a green dot at the center
 # RETURN: N/A
-def drawDetectionBoxes(idxs, boxes, classIDs, confidences, frame,y_image,num_frames,sr_no):
+def drawDetectionBoxes(idxs, boxes, classIDs, confidences, frame,y_image,num_frames,sr_no,scale):
 	# ensure at least one detection exists
 	if len(idxs) > 0:
 		# loop over the indices we are keeping
@@ -54,16 +60,21 @@ def drawDetectionBoxes(idxs, boxes, classIDs, confidences, frame,y_image,num_fra
 			cv2.circle(frame, (x + (w//2), y+ (h//2)), 2, (0, 0xFF, 0), thickness=2)
 			#condition for tracking object and appending in sheet
 			#object must be in the bounding area
-			#if y >= y_image[0] and y+(h//2) <= y_image[2]:
-			if y >= 100 and y <= 800:
+			if y >= (y_image[0] + y_image[1])//2 and y+(h//2) <= (y_image[2] + y_image[3])//2:
+			#if y >= 100 and y <= 800:
 				sheet1.write(sr_no,2,num_frames)
 				#print(num_frames,i,sr_no)
 				sheet1.write(sr_no,1,int(i))
 				sheet1.write(sr_no,3,(x + (w//2)))
 				sheet1.write(sr_no,4,(y + (h//2)))
+				sheet1.write(sr_no,7,(x +(w//2))*scale[0])
+				sheet1.write(sr_no,8,(y +(h//2))*scale[1])
+				sheet1.write(sr_no,9,(y +(h//2))*scale[1]*scale[2])
 				#sheet1.write(sr_no,5,"{}".format(LABELS[classIDs[i]]))
 				sheet1.write(sr_no,5,text)
 				sr_no = sr_no + 1
+			if i == 56:
+				print((x +(w//2))*scale[0],(y +(h//2))*scale[1])
 	return sr_no
 
 def boxInPreviousFrames(previous_frame_detections, current_box, current_detections):
@@ -165,7 +176,7 @@ def draw_prediction(frame, classes, classId, conf, left, top, right, bottom):
     cv2.rectangle(frame, (left, top - labelSize[1]), (left + labelSize[0], top + baseLine), (255, 255, 255), cv2.FILLED)
     cv2.putText(frame, label, (left, top), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0))
     #print(label)
-def process_frame(frame, outs, classes, confThreshold, nmsThreshold,video_width,video_height, vehicle_count, num_frames, X_plot, Y_plot,y_image,sr_no):
+def process_frame(frame, outs, classes, confThreshold, nmsThreshold,video_width,video_height, vehicle_count, num_frames, X_plot, Y_plot,y_image,sr_no,scale):
 	frameHeight = video_height
 	frameWidth = video_width
 	x1_line = 0
@@ -201,7 +212,7 @@ def process_frame(frame, outs, classes, confThreshold, nmsThreshold,video_width,
 		cv2.line(frame, (x1_line, y1_line),(x2_line, y2_line), (0, 0, 0xFF), 2)
 	'''
 	indices = cv2.dnn.NMSBoxes(boxes, confidences, confThreshold, nmsThreshold)
-	sr_no = drawDetectionBoxes(indices, boxes, classIds, confidences, frame,y_image,num_frames,sr_no)
+	sr_no = drawDetectionBoxes(indices, boxes, classIds, confidences, frame,y_image,num_frames,sr_no,scale)
 	vehicle_count, current_detections = count_vehicles(indices, boxes, classIds, vehicle_count, previous_frame_detections, frame, X_plot, Y_plot)
 	return current_detections, previous_frame_detections, vehicle_count, sr_no
 	'''
@@ -219,18 +230,27 @@ def find_scale(x_image,y_image):
 	print("enter width of road and length of road ,num of lanes(visible in image), divider width")
 	road_width = input("road width = \n")
 	road_length = input("road length = \n")
-	num_lanes = input("num of lane total = \n")
+	#num_lanes = input("num of lane total = \n")
 	div_width = input("divider length =\n")
 	road_width = float(road_width)
 	road_length = float(road_length)
-	num_lanes = int(num_lanes)
+	#num_lanes = int(num_lanes)
 	div_width = float(div_width)
+	road_width = road_width - div_width
 	vertical_scale = np.square(x_image[1]-x_image[2]) + np.square(y_image[1]-y_image[2])
 	vertical_scale = np.sqrt(vertical_scale)
+	'''
 	vertical_scale = vertical_scale/(road_length + 1e-8)
 	horizontal_scale = np.square(x_image[1]-x_image[2]) + np.square(y_image[1]-y_image[2])
-	print(road_width, road_length, num_lanes)
-	return 0
+	'''
+	H1 = np.square(x_image[0]-x_image[1]) + np.square(y_image[0]-y_image[1])
+	H2 = np.square(x_image[2]-x_image[3]) + np.square(y_image[2]-y_image[3])
+	H = np.sqrt(H1)-np.sqrt(H2)
+	grad_H = H / vertical_scale
+	SH = float(road_width/(np.sqrt(H1) + 1e-8))
+	SV = float(road_length/(vertical_scale + 1e-8))
+	#print(road_width, road_length, num_lanes)
+	return SH, SV, grad_H
 
 
 # Read COCO dataset classes
@@ -250,8 +270,8 @@ inputWidth, inputHeight = 416, 416
 net = cv2.dnn.readNet("yolov3.weights", "yolov3.cfg", "darknet")
 #for gpu setup
 #yet to be done (cuda crash)
-#net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
-#net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
+net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
+net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
 
 #catpure videoStream
 videoStream = cv2.VideoCapture('C:\\Users\\paree\\Downloads\\_imagis\\bridge.mp4')
@@ -283,8 +303,8 @@ while (1):
 print(x_image,y_image)
 
 #calculating scale
-#scale = find_scale(x_image,y_image)
-
+scale = find_scale(x_image,y_image)
+print(scale,type(scale))
 #Initialization
 previous_frame_detections = [{(0,0):0} for i in range(FRAMES_BEFORE_CURRENT)]
 # previous_frame_detections = [spatial.KDTree([(0,0)])]*FRAMES_BEFORE_CURRENT # Initializing all trees
@@ -292,7 +312,7 @@ num_frames, vehicle_count, sr_no = 0, 0, 2
 print("starting tracker")
 while( ret == True):
 	num_frames = num_frames + 1
-	print(num_frames)
+	#print(num_frames)
 	vehicle_crossed_line_flag = False
 	ret, frame = videoStream.read()
 	x = video_height
@@ -305,7 +325,7 @@ while( ret == True):
 	net.setInput(blob)
 	outs = net.forward(outNames)
 	current_detections, previous_frame_detections, vehicle_count, sr_no = process_frame(frame, outs, classes, CONF_THRESHOLD, NMS_THRESHOLD,
-		video_width, video_height, vehicle_count, num_frames,X_plot, Y_plot,y_image,sr_no)
+		video_width, video_height, vehicle_count, num_frames,X_plot, Y_plot,y_image,sr_no,scale)
 	cv2.imshow('Frame', frame)
 	if cv2.waitKey(1) & 0xFF == ord('q'):
 		break
