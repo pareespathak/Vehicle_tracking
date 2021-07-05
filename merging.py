@@ -12,6 +12,7 @@ import datetime
 #plotting the trajectory and bounding box
 from matplotlib import image
 from matplotlib import pyplot as plt
+import time
 
 # Workbook is created
 wb = Workbook()
@@ -21,11 +22,14 @@ sheet1.write(0, 1, 'id')
 sheet1.write(0, 2, 'frame_no')
 sheet1.write(0, 3, 'x')
 sheet1.write(0, 4, 'y')
-sheet1.write(0, 7, 'x_real')
-sheet1.write(0, 8, 'y_real')
-sheet1.write(0, 4, 'y_scale.')
-#sheet1.write(0, 5, 'type')
 sheet1.write(0, 5, 'type and confidence')
+sheet1.write(0, 6, 'x_real')
+sheet1.write(0, 7, 'y_real')
+sheet1.write(0, 8, 'h_scale fac')
+sheet1.write(0, 9, 'y_scale fac')
+sheet1.write(0, 10, 'Fps')
+
+
 
 # Define constants
 # CONF_THRESHOLD is confidence threshold. Only detection with confidence greater than this will be retained
@@ -106,8 +110,6 @@ def count_vehicles(idxs, boxes, classIDs, confidences, vehicle_count, previous_f
 				ID = current_detections.get((centerX, centerY))
 				if centerY >= np.min(y_image) and centerY <= np.max(y_image) and centerX >= x_image[0] and centerX <= x_image[1] and LABELS[classIDs[i]] =='car':
 					color = [int(c) for c in COLORS[classIDs[i]]]
-					if ID == 0:
-						print(ID, num_frames, x, y)
 					cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
 					#print("class id:", classIDs[i],"position",x ,y)
 					text = "{}: {:.4f}".format(LABELS[classIDs[i]],
@@ -117,16 +119,21 @@ def count_vehicles(idxs, boxes, classIDs, confidences, vehicle_count, previous_f
 					text1 = "{}: {:.4f}".format(x,y)
 					cv2.putText(frame, text, (x, y - 5),
 						cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-					#sheet1.write(sr_no,2,num_frames)
 					#print(num_frames,i,sr_no)
 					sheet1.write(sr_no,1,ID)
+					sheet1.write(sr_no,2,num_frames)
 					sheet1.write(sr_no,3,int(centerX))
 					sheet1.write(sr_no,4,int(centerY))
-					#sheet1.write(sr_no,7,(x +(w//2))*scale[0])
-					#sheet1.write(sr_no,8,(y +(h//2))*scale[1])
-					#sheet1.write(sr_no,9,(y +(h//2))*scale[1]*scale[2])
-					#sheet1.write(sr_no,5,"{}".format(LABELS[classIDs[i]]))
-					sheet1.write(sr_no,5,text)
+					sheet1.write(sr_no,5,"{}".format(LABELS[classIDs[i]]))
+					################ variable scale calculation ##############
+					scale_H = 0
+					Hori_scale = scale[1] * (centerY - np.min(y_image)) / (scale[3] + 1e-8)
+					scale_H = scale[0] - Hori_scale
+					sheet1.write(sr_no,6,(x +(w//2))*scale_H)
+					sheet1.write(sr_no,7,(y +(h//2))*scale[2])
+					sheet1.write(sr_no,8,scale_H)
+					sheet1.write(sr_no,9,scale[2])
+					#######increment number
 					sr_no = sr_no + 1
 				# If there are two detections having the same ID due to being too close,
 				# then assign a new ID to current detection.
@@ -227,27 +234,23 @@ def find_scale(x_image,y_image):
 	#road_width = road_width - div_width
 	vertical_scale = np.square(x_image[1]-x_image[2]) + np.square(y_image[1]-y_image[2])
 	vertical_scale = np.sqrt(vertical_scale)
-	vertical_scale = y_image[2]-y_image[1]
-	#vertical_scale = np.sqrt(np.square(x_image[2]) + np.square(y_image[2]))
-
-	#vertical_scale = vertical_scale/(road_length + 1e-8)
-	horizontal_scale = np.square(x_image[1]-x_image[2]) + np.square(y_image[1]-y_image[2])
-
+	vertical_scale = np.max(y_image) - np.min(y_image)
+	#horizontal_scale = np.square(x_image[1]-x_image[2]) + np.square(y_image[1]-y_image[2])
 	H1 = np.square(x_image[0]-x_image[1]) + np.square(y_image[0]-y_image[1])
 	H2 = np.square(x_image[2]-x_image[3]) + np.square(y_image[2]-y_image[3])
-	H = np.sqrt(H1)-np.sqrt(H2)
-	grad_H = H / vertical_scale
-	SH = float(road_width/(np.sqrt(H1) + 1e-8))
+	#H = grad_H*[]
+	SH1 = float(road_width/(np.sqrt(H1) + 1e-8))
+	SH2 = float(road_width/(np.sqrt(H2) + 1e-8))
 	SV = float(road_length/(vertical_scale + 1e-8))
-	#print(road_width, road_length, num_lanes)
-	return SH, SV, grad_H
+	S_D = SH1 - SH2
 
+	return SH1, S_D, SV, vertical_scale
 
 # Read COCO dataset classes
 with open('cocos.names', 'rt') as f:
 	classes = f.read().rstrip('\n').split('\n')
 	LABELS = classes
-print(classes)
+#print(classes)
 
 np.random.seed(42)
 COLORS = np.random.randint(0, 255, size=(len(LABELS), 3), dtype="uint8")
@@ -269,6 +272,7 @@ if cuda:
 #catpure videoStream
 #videoStream = cv2.VideoCapture('C:\\Users\\paree\\Downloads\\_imagis\\bridge.mp4')
 videoStream = cv2.VideoCapture('C:\\aa\\vehicle_tracking_college\\tracking\\yolo_youtube\\delhi_dataset.mp4')
+print("FPS of video ",videoStream.get(cv2.CAP_PROP_FPS))
 # initialize the video stream, pointer to output video file, and
 # frame dimensions
 video_width = int(videoStream.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -276,7 +280,9 @@ video_height = int(videoStream.get(cv2.CAP_PROP_FRAME_HEIGHT))
 #drawing coordinates for image
 ret, frame = videoStream.read()
 image_ref = frame
+#print(frame.shape)
 print("Draw coordinates on image and press escape after 4 coordinates")
+
 
 def draw_coordinates(event, x, y, flag, params):
 	if event == cv2.EVENT_LBUTTONDBLCLK:
@@ -293,27 +299,22 @@ while (1):
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 print(x_image,y_image)
-'''
-crop_x1, crop_x2 = np.min(x_image), np.max(x_image)
-crop_y1, crop_y2 = np.min(y_image), np.max(y_image)
-print(crop_x1, crop_x2, crop_y1, crop_y2)
-'''
+
 cv2.destroyAllWindows()
 #calculating scale
 scale = find_scale(x_image,y_image)
-print(scale,type(scale))
+print(scale)
 #Initialization
 previous_frame_detections = [{(0,0):0} for i in range(FRAMES_BEFORE_CURRENT)]
 # previous_frame_detections = [spatial.KDTree([(0,0)])]*FRAMES_BEFORE_CURRENT # Initializing all trees
 num_frames, vehicle_count, sr_no = 0, 0, 2
 print("starting tracker")
-
 while( ret == True):
+	start_time = time.time() 						##start time of loop
 	num_frames = num_frames + 1
 	#print(num_frames)
 	vehicle_crossed_line_flag = False
 	ret, frame = videoStream.read()
-	#frame = frame[crop_x1:crop_x2, crop_y1:crop_y2]
 	x = video_height
 	y = video_height
 	if not ret:
@@ -333,6 +334,11 @@ while( ret == True):
 	#print(type(current_detections))
 	#previous_frame_detections.append(spatial.KDTree(current_detections))
 	previous_frame_detections.append(current_detections)
+
+	Fps = float(time.time() - start_time)
+	#print("Fps = ", 1/Fps)
+	sheet1.write(sr_no,10,float(1/Fps))
+
 
 plt.imshow(image_ref)
 plt.show()
