@@ -28,6 +28,7 @@ sheet1.write(0, 7, 'y_real')
 sheet1.write(0, 8, 'h_scale fac')
 sheet1.write(0, 9, 'y_scale fac')
 sheet1.write(0, 10, 'Fps')
+sheet1.write(0, 11, 'time')
 
 
 
@@ -120,19 +121,30 @@ def count_vehicles(idxs, boxes, classIDs, confidences, vehicle_count, previous_f
 					cv2.putText(frame, text, (x, y - 5),
 						cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 					#print(num_frames,i,sr_no)
+					#exporting data in sheet
 					sheet1.write(sr_no,1,ID)
 					sheet1.write(sr_no,2,num_frames)
 					sheet1.write(sr_no,3,int(centerX))
 					sheet1.write(sr_no,4,int(centerY))
 					sheet1.write(sr_no,5,"{}".format(LABELS[classIDs[i]]))
-					################ variable scale calculation ##############
+					################ variable horizontal scale calculation ##############
 					scale_H = 0
-					Hori_scale = scale[1] * (centerY - np.min(y_image)) / (scale[3] + 1e-8)
+					dist_from_start = centerY - np.min(y_image)
+					Scale_factor = dist_from_start / (scale[3] + 1e-8)
+					Hori_scale = scale[1] * Scale_factor
 					scale_H = scale[0] - Hori_scale
-					sheet1.write(sr_no,6,(x +(w//2))*scale_H)
-					sheet1.write(sr_no,7,(y +(h//2))*scale[2])
+					##############approach 2
+					Vert_scale = scale[4] * Scale_factor
+					scale_V = scale[5] - Vert_scale
+					grad_pix_x = (x_image[0]-x_image[3]) /(y_image[3]-y_image[0] + 1e-8)
+					intitial_x = x_image[0] - (grad_pix_x * dist_from_start)
+					sheet1.write(sr_no,6,((x +(w//2)) - intitial_x)*scale_H)
+					#sheet1.write(sr_no,7,((y +(h//2))-np.min(y_image))*scale[2])
+					#sheet1.write(sr_no,7,((y +(h//2))-np.min(y_image))*scale_V)
+					#sheet1.write(sr_no,7,(y +(h//2)))
 					sheet1.write(sr_no,8,scale_H)
-					sheet1.write(sr_no,9,scale[2])
+					#sheet1.write(sr_no,9,scale[2])
+					sheet1.write(sr_no,9,scale_V)
 					#######increment number
 					sr_no = sr_no + 1
 				# If there are two detections having the same ID due to being too close,
@@ -149,7 +161,6 @@ def count_vehicles(idxs, boxes, classIDs, confidences, vehicle_count, previous_f
 
 # PURPOSE: Displays the vehicle count on the top-left corner of the frame
 # PARAMETERS: Frame on which the count is displayed, the count number of vehicles
-# RETURN: N/A
 def displayVehicleCount(frame, vehicle_count):
 	cv2.putText(
 		frame, #Image
@@ -162,32 +173,10 @@ def displayVehicleCount(frame, vehicle_count):
 		cv2.FONT_HERSHEY_COMPLEX_SMALL,
 		)
 
-# Draw a prediction box with confidence and title
-def draw_prediction(frame, classes, classId, conf, left, top, right, bottom):
-    # Draw a bounding box.
-    cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0))
-    cx = (left + right)//2
-    cy = (top + bottom)//2
-    #print(cx,cy)
-    cv2.circle(frame, (cx,cy), 1, (255, 0, 0), 2)
-    # Assign confidence to label
-    label = '%.2f' % conf
-    # Print a label of class.
-    if classes:
-        assert(classId < len(classes))
-        label = '%s: %s' % (classes[classId], label)
-    labelSize, baseLine = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
-    top = max(top, labelSize[1])
-    cv2.rectangle(frame, (left, top - labelSize[1]), (left + labelSize[0], top + baseLine), (255, 255, 255), cv2.FILLED)
-    cv2.putText(frame, label, (left, top), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0))
-    #print(label)
+
 def process_frame(frame, outs, classes, confThreshold, nmsThreshold,video_width,video_height, vehicle_count, num_frames, y_image,x_image,sr_no,scale):
 	frameHeight = video_height
 	frameWidth = video_width
-	x1_line = 0
-	y1_line = video_height//2
-	x2_line = video_width//3
-	y2_line = video_height//2
 	classIds = []
 	confidences = []
 	boxes = []
@@ -211,40 +200,64 @@ def process_frame(frame, outs, classes, confThreshold, nmsThreshold,video_width,
 				confidences.append(float(confidence))
 				boxes.append([left, top, width, height])
 	'''
+	#### optional parameters to create line ( counting blink line)
 	if vehicle_crossed_line_flag:
-		cv2.line(frame, (x1_line, y1_line),( x2_line, y2_line),(0, 0xFF, 0), 2)
+		cv2.line(frame, (x_image[0], y_image[0]), (x_image[1], y_image[1]), (0, 0xFF, 0), 2)
 	else:
-		cv2.line(frame, (x1_line, y1_line),(x2_line, y2_line), (0, 0, 0xFF), 2)
+		cv2.line(frame, (x_image[0], y_image[0]), (x_image[1], y_image[1]), (0, 0, 0xFF), 2)
 	'''
+	######## indices stores values  Thus exportng indices in vehicle_count function
+	######## indices = idxs
 	indices = cv2.dnn.NMSBoxes(boxes, confidences, confThreshold, nmsThreshold)
+	##### vehicle_count provides the sheet data
 	vehicle_count, current_detections, sr_no = count_vehicles(indices, boxes, classIds, confidences, vehicle_count, previous_frame_detections, frame, y_image, x_image, num_frames, sr_no, scale)
+	##### Draws the center dot for each object
 	drawDetectionBoxes(indices, boxes, classIds, confidences, frame,y_image,x_image,num_frames,sr_no,scale)
 	return current_detections, previous_frame_detections, vehicle_count, sr_no
 
 def find_scale(x_image,y_image):
-	print("enter width of road and length of road ,num of lanes(visible in image), divider width")
+	print("enter width of road and length of road in (m)")
 	road_width = input("road width = \n")
 	road_length = input("road length = \n")
-	#num_lanes = input("num of lane total = \n")
-	div_width = input("divider length =\n")
+	Y_divs = input("Y_dividion length for scaling =\n")
 	road_width = float(road_width)
 	road_length = float(road_length)
-	#num_lanes = int(num_lanes)
-	div_width = float(div_width)
-	#road_width = road_width - div_width
+	Y_divs = float(Y_divs)
+	#vertial distance of ROI
 	vertical_scale = np.square(x_image[1]-x_image[2]) + np.square(y_image[1]-y_image[2])
 	vertical_scale = np.sqrt(vertical_scale)
 	vertical_scale = np.max(y_image) - np.min(y_image)
 	#horizontal_scale = np.square(x_image[1]-x_image[2]) + np.square(y_image[1]-y_image[2])
+	#V1 = np.square(x_image[0]-x_image[5]) + np.square(y_image[0]-y_image[5])
+	#V2 = np.square(x_image[3]-x_image[4]) + np.square(y_image[3]-y_image[4])
+	V2 = np.square(y_image[3]-y_image[4]) + np.square(x_image[3]-x_image[4])
+	V1 = np.square(y_image[0]-y_image[5]) + np.square(x_image[0]-x_image[5])
+	#####################################################################################
 	H1 = np.square(x_image[0]-x_image[1]) + np.square(y_image[0]-y_image[1])
 	H2 = np.square(x_image[2]-x_image[3]) + np.square(y_image[2]-y_image[3])
 	#H = grad_H*[]
-	SH1 = float(road_width/(np.sqrt(H1) + 1e-8))
-	SH2 = float(road_width/(np.sqrt(H2) + 1e-8))
-	SV = float(road_length/(vertical_scale + 1e-8))
-	S_D = SH1 - SH2
+	SH1 = float(road_width/(np.sqrt(H1) + 1e-8))         ######3 scale for upper line(ususally larger)
+	SH2 = float(road_width/(np.sqrt(H2) + 1e-8))		######### scale for lower line ( ususally amaller )
+	SVm = float(road_length/(vertical_scale + 1e-8))
+	S_D = SH1 - SH2										####### gradiednt paramter, change the order of SH!, SH2 when required
+	#grad_M = S_D * (np.max(y_image)-np.min(y_image)) * 0.5 / (vertical_scale + 1e-8)		###### horizontal scale for middle line
+	#SH_M = SH1-grad_M													 ############ same as above
+	'''
 
-	return SH1, S_D, SV, vertical_scale
+	SVm = float(road_length/(vertical_scale + 1e-8))
+	SH_M = (SH1+SH2)*0.5
+	Y_factor = SVm / (SH_M + 1e-8)
+	'''
+	############################################### approach 2 for y scale
+	SV1 = float(Y_divs/(np.sqrt(V1) + 1e-8))
+	SV2 = float(Y_divs/(np.sqrt(V2) + 1e-8))
+	S_DV = SV1-SV2
+	#S_DV = 0.025
+	#SV1 = 0.0855
+	print(SV1,SV2,SVm,S_DV,SH2)
+
+
+	return SH1, S_D, SVm, vertical_scale, S_DV, SV1, #Y_factor
 
 # Read COCO dataset classes
 with open('cocos.names', 'rt') as f:
@@ -283,7 +296,7 @@ image_ref = frame
 #print(frame.shape)
 print("Draw coordinates on image and press escape after 4 coordinates")
 
-
+#################### mouse callback function for ROI ###################
 def draw_coordinates(event, x, y, flag, params):
 	if event == cv2.EVENT_LBUTTONDBLCLK:
 		x_image.append(x)
@@ -292,6 +305,7 @@ def draw_coordinates(event, x, y, flag, params):
 		if len(x_image) >= 2:
 			cv2.line(image_ref, (x_image[-1],y_image[-1]), (x_image[-2], y_image[-2]), (255, 0, 0), 3)
 x_image, y_image = [], []
+################### window frame to draw ROI ##############################
 cv2.namedWindow("image_ref")
 cv2.setMouseCallback("image_ref",draw_coordinates)
 while (1):
@@ -335,13 +349,15 @@ while( ret == True):
 	#previous_frame_detections.append(spatial.KDTree(current_detections))
 	previous_frame_detections.append(current_detections)
 
-	Fps = float(time.time() - start_time)
+	Fps = float(time.time() - start_time)           #Processing frame per seconds calculation
 	#print("Fps = ", 1/Fps)
-	sheet1.write(sr_no,10,float(1/Fps))
+	#sheet1.write(sr_no,10,float(1/Fps))
+	#sheet1.write(sr_no,11,float(Fps))
 
 
 plt.imshow(image_ref)
 plt.show()
 cv2.destroyAllWindows()
-wb.save('data1.xls')
+######## output file name
+wb.save('data_with_scale_mod1.xls')
 print("end")
