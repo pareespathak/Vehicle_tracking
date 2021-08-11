@@ -1,6 +1,5 @@
 # import the necessary packages
 import numpy as np
-import imutils
 import time
 from scipy import spatial
 import cv2
@@ -55,7 +54,7 @@ def drawDetectionBoxes(idxs, boxes, classIDs, confidences, frame,y_image,x_image
 			# draw a bounding box rectangle and label on the frame
 			#Draw a green dot in the middle of the box
 			c_x = x + (w//2)
-			c_y = y + (h//2)
+			c_y = y + h
 			cv2.circle(frame, (c_x, c_y), 2, (0, 0xFF, 0), thickness=2)
 
 			#condition for tracking object and appending in sheet
@@ -82,7 +81,7 @@ def boxInPreviousFrames(previous_frame_detections, current_box, current_detectio
 	# Keeping the vehicle ID constant
 	current_detections[(centerX, centerY)] = previous_frame_detections[frame_num][coord]
 	return True
-def count_vehicles(idxs, boxes, classIDs, confidences, vehicle_count, previous_frame_detections, frame, y_image, x_image, num_frames, sr_no, scale):
+def count_vehicles(idxs, boxes, classIDs, confidences, vehicle_count, previous_frame_detections, frame, y_image, x_image, num_frames, sr_no, scale, X_plot, Y_plot):
 	current_detections = {}
 	# ensure at least one detection exists
 	if len(idxs) > 0:
@@ -109,6 +108,7 @@ def count_vehicles(idxs, boxes, classIDs, confidences, vehicle_count, previous_f
 				# Get the ID corresponding to the current detection
 
 				ID = current_detections.get((centerX, centerY))
+				centerY = y + h
 				if centerY >= np.min(y_image) and centerY <= np.max(y_image) and centerX >= x_image[0] and centerX <= x_image[1] and LABELS[classIDs[i]] =='car':
 					color = [int(c) for c in COLORS[classIDs[i]]]
 					cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
@@ -136,6 +136,9 @@ def count_vehicles(idxs, boxes, classIDs, confidences, vehicle_count, previous_f
 					##############approach 2
 					Vert_scale = scale[4] * Scale_factor
 					scale_V = scale[5] - Vert_scale
+					#scale_V = 0.7352 - (np.log(dist_from_start) * 0.118)
+					#scale_V = 0.3092*np.exp(-0.005*dist_from_start)
+					#scale_V =
 					grad_pix_x = (x_image[0]-x_image[3]) /(y_image[3]-y_image[0] + 1e-8)
 					intitial_x = x_image[0] - (grad_pix_x * dist_from_start)
 					sheet1.write(sr_no,6,((x +(w//2)) - intitial_x)*scale_H)
@@ -145,6 +148,9 @@ def count_vehicles(idxs, boxes, classIDs, confidences, vehicle_count, previous_f
 					sheet1.write(sr_no,8,scale_H)
 					#sheet1.write(sr_no,9,scale[2])
 					sheet1.write(sr_no,9,scale_V)
+					if ID == 0:
+						X_plot.append(centerX)
+						Y_plot.append(centerY)
 					#######increment number
 					sr_no = sr_no + 1
 				# If there are two detections having the same ID due to being too close,
@@ -174,7 +180,7 @@ def displayVehicleCount(frame, vehicle_count):
 		)
 
 
-def process_frame(frame, outs, classes, confThreshold, nmsThreshold,video_width,video_height, vehicle_count, num_frames, y_image,x_image,sr_no,scale):
+def process_frame(frame, outs, classes, confThreshold, nmsThreshold,video_width,video_height, vehicle_count, num_frames, y_image,x_image,sr_no,scale, X_plot, Y_plot):
 	frameHeight = video_height
 	frameWidth = video_width
 	classIds = []
@@ -210,7 +216,7 @@ def process_frame(frame, outs, classes, confThreshold, nmsThreshold,video_width,
 	######## indices = idxs
 	indices = cv2.dnn.NMSBoxes(boxes, confidences, confThreshold, nmsThreshold)
 	##### vehicle_count provides the sheet data
-	vehicle_count, current_detections, sr_no = count_vehicles(indices, boxes, classIds, confidences, vehicle_count, previous_frame_detections, frame, y_image, x_image, num_frames, sr_no, scale)
+	vehicle_count, current_detections, sr_no = count_vehicles(indices, boxes, classIds, confidences, vehicle_count, previous_frame_detections, frame, y_image, x_image, num_frames, sr_no, scale, X_plot, Y_plot)
 	##### Draws the center dot for each object
 	drawDetectionBoxes(indices, boxes, classIds, confidences, frame,y_image,x_image,num_frames,sr_no,scale)
 	return current_detections, previous_frame_detections, vehicle_count, sr_no
@@ -220,9 +226,11 @@ def find_scale(x_image,y_image):
 	road_width = input("road width = \n")
 	road_length = input("road length = \n")
 	Y_divs = input("Y_dividion length for scaling =\n")
+	Y_divs_L = input("Y_dividion length for scaling lower =\n")
 	road_width = float(road_width)
 	road_length = float(road_length)
 	Y_divs = float(Y_divs)
+	Y_divs_L = float(Y_divs_L)
 	#vertial distance of ROI
 	vertical_scale = np.square(x_image[1]-x_image[2]) + np.square(y_image[1]-y_image[2])
 	vertical_scale = np.sqrt(vertical_scale)
@@ -250,7 +258,7 @@ def find_scale(x_image,y_image):
 	'''
 	############################################### approach 2 for y scale
 	SV1 = float(Y_divs/(np.sqrt(V1) + 1e-8))
-	SV2 = float(Y_divs/(np.sqrt(V2) + 1e-8))
+	SV2 = float(Y_divs_L/(np.sqrt(V2) + 1e-8))
 	S_DV = SV1-SV2
 	#S_DV = 0.025
 	#SV1 = 0.0855
@@ -284,7 +292,7 @@ if cuda:
 
 #catpure videoStream
 #videoStream = cv2.VideoCapture('C:\\Users\\paree\\Downloads\\_imagis\\bridge.mp4')
-videoStream = cv2.VideoCapture('C:\\aa\\vehicle_tracking_college\\tracking\\yolo_youtube\\delhi_dataset.mp4')
+videoStream = cv2.VideoCapture('C:\\aa\\vehicle_tracking_college\\tracking\\yolo_youtube\\datasets\\delhi_dataset.mp4')
 print("FPS of video ",videoStream.get(cv2.CAP_PROP_FPS))
 # initialize the video stream, pointer to output video file, and
 # frame dimensions
@@ -292,8 +300,12 @@ video_width = int(videoStream.get(cv2.CAP_PROP_FRAME_WIDTH))
 video_height = int(videoStream.get(cv2.CAP_PROP_FRAME_HEIGHT))
 #drawing coordinates for image
 ret, frame = videoStream.read()
+cv2.imshow('frame', frame)
+#image_ref = cv2.imread('C:\\aa\\vehicle_tracking_college\\tracking\\yolo_youtube\\grids_kinoviea\\10m_roi.jpg')
+#cv2.imwrite('region.png', image_ref)
+#image_ref = cv2.resize(image_ref, (frame.shape[1], frame.shape[0]))
 image_ref = frame
-#print(frame.shape)
+print(frame.shape)
 print("Draw coordinates on image and press escape after 4 coordinates")
 
 #################### mouse callback function for ROI ###################
@@ -312,12 +324,15 @@ while (1):
     cv2.imshow('image_ref',image_ref)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
+
 print(x_image,y_image)
 
 cv2.destroyAllWindows()
 #calculating scale
 scale = find_scale(x_image,y_image)
 print(scale)
+X_plot = []
+Y_plot = []
 #Initialization
 previous_frame_detections = [{(0,0):0} for i in range(FRAMES_BEFORE_CURRENT)]
 # previous_frame_detections = [spatial.KDTree([(0,0)])]*FRAMES_BEFORE_CURRENT # Initializing all trees
@@ -333,13 +348,15 @@ while( ret == True):
 	y = video_height
 	if not ret:
 		break
+	#print(frame)
+	#ret = False
 	blob = cv2.dnn.blobFromImage(frame, 1 / 255.0, (inputWidth, inputHeight), swapRB=True, crop = False)
 	#get output layer
 	outNames = net.getUnconnectedOutLayersNames()
 	net.setInput(blob)
 	outs = net.forward(outNames)
 	current_detections, previous_frame_detections, vehicle_count, sr_no = process_frame(frame, outs, classes, CONF_THRESHOLD, NMS_THRESHOLD,
-		video_width, video_height, vehicle_count, num_frames, y_image, x_image, sr_no, scale)
+		video_width, video_height, vehicle_count, num_frames, y_image, x_image, sr_no, scale, X_plot, Y_plot)
 	cv2.imshow('Frame', frame)
 	if cv2.waitKey(1) & 0xFF == ord('q'):
 		break
@@ -356,8 +373,9 @@ while( ret == True):
 
 
 plt.imshow(image_ref)
+plt.plot(X_plot,Y_plot)
 plt.show()
 cv2.destroyAllWindows()
 ######## output file name
-wb.save('data_with_scale_mod1.xls')
+wb.save('data_with_lin_scale_30.xls')
 print("end")

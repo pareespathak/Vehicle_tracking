@@ -37,7 +37,8 @@ sheet1.write(0, 11, 'time')
 CONF_THRESHOLD = 0.3
 #NMS to overcome the multiple boxes over single object
 NMS_THRESHOLD = 0.4
-list_of_vehicles = ["car","bus","truck", "train"]
+#list_of_vehicles = ["car","bus","truck", "train","bicycle","motorbike"]
+list_of_vehicles = ["car","bus","truck"]
 
 
 # PURPOSE: Draw all the detection boxes with a green dot at the center
@@ -109,24 +110,20 @@ def count_vehicles(idxs, boxes, classIDs, confidences, vehicle_count, previous_f
 
                 ID = current_detections.get((centerX, centerY))
                 centerY = y + h
-                if centerY >= np.min(y_image) and centerY <= np.max(y_image) and centerX >= x_image[0] and centerX <= x_image[1] and LABELS[classIDs[i]] =='car':
+                if centerY >= np.min(y_image) and centerY <= np.max(y_image) and centerX >= x_image[0] and centerX <= x_image[1] and ID == 335: 
                     color = [int(c) for c in COLORS[classIDs[i]]]
                     cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
-                    #print("class id:", classIDs[i],"position",x ,y)
                     text = "{}: {:.4f}".format(LABELS[classIDs[i]],
                         confidences[i])
                     cv2.putText(frame, text, (x, y - 5),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-                    text1 = "{}: {:.4f}".format(x,y)
-                    cv2.putText(frame, text, (x, y - 5),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-                    #print(num_frames,i,sr_no)
+                    #text1 = "{}: {:.4f}".format(x,y)
                     #exporting data in sheet
                     sheet1.write(sr_no,1,ID)
                     sheet1.write(sr_no,2,num_frames)
                     sheet1.write(sr_no,3,int(centerX))
                     sheet1.write(sr_no,4,int(centerY))
-                    sheet1.write(sr_no,5,"{}".format(LABELS[classIDs[i]]))
+                    sheet1.write(sr_no,5,text)
                     image_co = np.array([[centerX], [centerY], [1]])
                     #print(type(image_co))
                     real_co = np.dot(scale, image_co)
@@ -136,9 +133,9 @@ def count_vehicles(idxs, boxes, classIDs, confidences, vehicle_count, previous_f
                     sheet1.write(sr_no,6,float(X_real/(h_real + 1e-8)))
                     sheet1.write(sr_no,7,float(Y_real/(h_real + 1e-8)))
                     sheet1.write(sr_no,8,float(h_real))
-                    if ID == 0:
-                        X_plot.append(centerX)
-                        Y_plot.append(centerY)
+                    #if ID == 0:
+                    X_plot.append(centerX)
+                    Y_plot.append(centerY)
                     #######increment number
                     sr_no = sr_no + 1
                 # If there are two detections having the same ID due to being too close,
@@ -207,47 +204,7 @@ def process_frame(frame, outs, classes, confThreshold, nmsThreshold,video_width,
 	##### Draws the center dot for each object
 	drawDetectionBoxes(indices, boxes, classIds, confidences, frame,y_image,x_image,num_frames,sr_no,scale)
 	return current_detections, previous_frame_detections, vehicle_count, sr_no
-'''
-def find_scale(x_image,y_image):
-	print("enter width of road and length of road in (m)")
-	road_width = input("road width = \n")
-	road_length = input("road length = \n")
-	Y_divs = input("Y_dividion length for scaling =\n")
-	Y_divs_L = input("Y_dividion length for scaling lower =\n")
-	road_width = float(road_width)
-	road_length = float(road_length)
-	Y_divs = float(Y_divs)
-	Y_divs_L = float(Y_divs_L)
-	#vertial distance of ROI
-	vertical_scale = np.square(x_image[1]-x_image[2]) + np.square(y_image[1]-y_image[2])
-	vertical_scale = np.sqrt(vertical_scale)
-	vertical_scale = np.max(y_image) - np.min(y_image)
-	#horizontal_scale = np.square(x_image[1]-x_image[2]) + np.square(y_image[1]-y_image[2])
-	#V1 = np.square(x_image[0]-x_image[5]) + np.square(y_image[0]-y_image[5])
-	#V2 = np.square(x_image[3]-x_image[4]) + np.square(y_image[3]-y_image[4])
-	V2 = np.square(y_image[3]-y_image[4]) + np.square(x_image[3]-x_image[4])
-	V1 = np.square(y_image[0]-y_image[5]) + np.square(x_image[0]-x_image[5])
-	#####################################################################################
-	H1 = np.square(x_image[0]-x_image[1]) + np.square(y_image[0]-y_image[1])
-	H2 = np.square(x_image[2]-x_image[3]) + np.square(y_image[2]-y_image[3])
-	#H = grad_H*[]
-	SH1 = float(road_width/(np.sqrt(H1) + 1e-8))         ######3 scale for upper line(ususally larger)
-	SH2 = float(road_width/(np.sqrt(H2) + 1e-8))		######### scale for lower line ( ususally amaller )
-	SVm = float(road_length/(vertical_scale + 1e-8))
-	S_D = SH1 - SH2										####### gradiednt paramter, change the order of SH!, SH2 when required
-	#grad_M = S_D * (np.max(y_image)-np.min(y_image)) * 0.5 / (vertical_scale + 1e-8)		###### horizontal scale for middle line
-	#SH_M = SH1-grad_M													 ############ same as above
-	############################################### approach 2 for y scale
-	SV1 = float(Y_divs/(np.sqrt(V1) + 1e-8))
-	SV2 = float(Y_divs_L/(np.sqrt(V2) + 1e-8))
-	S_DV = SV1-SV2
-	#S_DV = 0.025
-	#SV1 = 0.0855
-	print(SV1,SV2,SVm,S_DV,SH2)
 
-
-	return SH1, S_D, SVm, vertical_scale, S_DV, SV1, #Y_factor
-'''
 # Read COCO dataset classes
 with open('cocos.names', 'rt') as f:
 	classes = f.read().rstrip('\n').split('\n')
@@ -276,14 +233,15 @@ if cuda:
 
 dst, src = [], []
 
-videoStream = cv2.VideoCapture('C:\\aa\\vehicle_tracking_college\\tracking\\yolo_youtube\\datasets\\delhi_dataset_Trim.mp4')
+videoStream = cv2.VideoCapture('C:\\aa\\vehicle_tracking_college\\tracking\\yolo_youtube\\datasets\\delhi_dataset.mp4')
 video_width = int(videoStream.get(cv2.CAP_PROP_FRAME_WIDTH))
 video_height = int(videoStream.get(cv2.CAP_PROP_FRAME_HEIGHT))
 print("FPS of video ",videoStream.get(cv2.CAP_PROP_FPS))
 #drawing coordinates for image
 ret, frame = videoStream.read()
-#image_ref = frame
+image_ref = frame
 reference_img = frame
+'''
 def draw_coordinates(event, x, y, flag, params):
     if event == cv2.EVENT_LBUTTONDBLCLK:
         x_image.append(x)
@@ -300,9 +258,13 @@ while (1):
     cv2.imshow('image_ref',image_ref)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
-
+'''
 #diagonal_aspect_pixel = np.square(y_image[0]-y_image[2]) + np.square(x_image[0]-x_image[2])
 #diagonal_aspect_pixel = int(np.sqrt(diagonal_aspect_pixel))
+#[[457, 186], [734, 198], [877, 578], [238, 559], [356, 358], [422, 251]]
+x_image = [457, 734, 877, 238, 356, 422]
+y_image = [186, 198, 578, 559, 358, 251]
+src = [[457, 186], [734, 198], [877, 578], [238, 559], [356, 358], [422, 251]]
 print(x_image, y_image)
 cv2.destroyAllWindows()
 dst = [[0.0,0.0], [10.5, 0.0], [10.5, 30.0], [0.0, 30.0], [0.0, 20], [0.0, 10.0]]
@@ -367,5 +329,5 @@ plt.plot(X_plot,Y_plot)
 plt.show()
 cv2.destroyAllWindows()
 ######## output file name
-wb.save('co_transform_5_8a.xls')
+wb.save('335_sheet.xls')
 print("end")
