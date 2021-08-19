@@ -110,7 +110,7 @@ def count_vehicles(idxs, boxes, classIDs, confidences, vehicle_count, previous_f
 
                 ID = current_detections.get((centerX, centerY))
                 centerY = y + h
-                if centerY >= np.min(y_image) and centerY <= np.max(y_image) and centerX >= x_image[0] and centerX <= x_image[1] and ID == 335: 
+                if centerY >= np.min(y_image) and centerY <= np.max(y_image) and centerX >= np.min(x_image) and centerX <= np.max(x_image): 
                     color = [int(c) for c in COLORS[classIDs[i]]]
                     cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
                     text = "{}: {:.4f}".format(LABELS[classIDs[i]],
@@ -134,8 +134,8 @@ def count_vehicles(idxs, boxes, classIDs, confidences, vehicle_count, previous_f
                     sheet1.write(sr_no,7,float(Y_real/(h_real + 1e-8)))
                     sheet1.write(sr_no,8,float(h_real))
                     #if ID == 0:
-                    X_plot.append(centerX)
-                    Y_plot.append(centerY)
+                    #X_plot.append(centerX)
+                    #Y_plot.append(centerY)
                     #######increment number
                     sr_no = sr_no + 1
                 # If there are two detections having the same ID due to being too close,
@@ -233,7 +233,7 @@ if cuda:
 
 dst, src = [], []
 
-videoStream = cv2.VideoCapture('C:\\aa\\vehicle_tracking_college\\tracking\\yolo_youtube\\datasets\\delhi_dataset.mp4')
+videoStream = cv2.VideoCapture('C:\\aa\\vehicle_tracking_college\\tracking\\yolo_youtube\\datasets\\delhi_validation.mp4')
 video_width = int(videoStream.get(cv2.CAP_PROP_FRAME_WIDTH))
 video_height = int(videoStream.get(cv2.CAP_PROP_FRAME_HEIGHT))
 print("FPS of video ",videoStream.get(cv2.CAP_PROP_FPS))
@@ -259,30 +259,23 @@ while (1):
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 '''
-#diagonal_aspect_pixel = np.square(y_image[0]-y_image[2]) + np.square(x_image[0]-x_image[2])
-#diagonal_aspect_pixel = int(np.sqrt(diagonal_aspect_pixel))
-#[[457, 186], [734, 198], [877, 578], [238, 559], [356, 358], [422, 251]]
-x_image = [457, 734, 877, 238, 356, 422]
-y_image = [186, 198, 578, 559, 358, 251]
-src = [[457, 186], [734, 198], [877, 578], [238, 559], [356, 358], [422, 251]]
+x_image = [458, 734, 876, 241, 357, 423]
+y_image = [186, 197, 578, 558, 358, 249]
+src = [[458, 186], [734, 197], [876, 578], [241, 558], [357, 358], [423, 249]]
+#src = [[457, 186], [734, 198], [877, 578], [238, 559], [356, 358], [422, 251]]
+#src = [[593, 304], [761, 306], [1000, 674], [299, 670]]  ### Baglur
+#src = [[573, 288], [671, 289], [769, 463], [449, 458]]   ### mekhri 
+
 print(x_image, y_image)
 cv2.destroyAllWindows()
 dst = [[0.0,0.0], [10.5, 0.0], [10.5, 30.0], [0.0, 30.0], [0.0, 20], [0.0, 10.0]]
-#points = np.float32(points[:, np.newaxis, :])
-#dst = np.float32(dst[:, np.newaxis, :])
-#src = np.float32(src[:, np.newaxis, :])
-############### replacing x_image and y_image in main frames  ########################
+#dst = [[0.0,0.0], [12.0, 0.0], [12.0, 60.0], [0.0, 60.0]] ###### Baglur pass
+#dst =  [[0.0,0.0], [10.5, 0.0], [10.5, 58.0], [0.0, 58.0]] ###### Baglur pass
+
 print(src)
 print(dst)
 homography_mat, Mask = cv2.findHomography(np.float32(src), np.float32(dst), method = cv2.RANSAC)
 print(type(homography_mat), "\n", homography_mat.shape)
-image_co = np.array([[556.0], [186.0], [1.0]])
-#print(type(image_co))
-real_co = np.dot(homography_mat, image_co)
-#print(real_co, real_co[1])
-#calculating scale
-#scale = find_scale(x_image,y_image)
-#print(scale)
 scale = homography_mat
 X_plot = []
 Y_plot = []
@@ -329,5 +322,5 @@ plt.plot(X_plot,Y_plot)
 plt.show()
 cv2.destroyAllWindows()
 ######## output file name
-wb.save('335_sheet.xls')
+wb.save('results\date 19-8.xls')
 print("end")
