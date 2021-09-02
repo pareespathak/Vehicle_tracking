@@ -56,7 +56,7 @@ class Ui_MainWindow(object):
         self.label = QtWidgets.QLabel(self.centralwidget)
         self.label.setGeometry(QtCore.QRect(10, 260, 651, 391))
         self.label.setText("")
-        self.label.setPixmap(QtGui.QPixmap("../testing_video/scale_2.jpeg"))
+        self.label.setPixmap(QtGui.QPixmap("detection_sample.jpg"))
         self.label.setScaledContents(True)
         self.label.setObjectName("label")
         self.label_2 = QtWidgets.QLabel(self.centralwidget)
@@ -441,14 +441,14 @@ class Ui_MainWindow(object):
                 if event == cv2.EVENT_LBUTTONDBLCLK:
                     text = str(self.i+1)
                     cv2.putText(frame, text, (x, y - 5),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0,255,0), 2)
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 2)
                     x_image.append(x)
                     y_image.append(y)
                     cv2.circle(image_ref, (x,y), 7, (0,0,255), -1)
                     src.append([x,y])
                     self.i = self.i + 1
                     if len(x_image) >= 2:
-                        cv2.line(image_ref, (x_image[-1],y_image[-1]), (x_image[-2], y_image[-2]), (255, 255, 0), 3)
+                        cv2.line(image_ref, (x_image[-1],y_image[-1]), (x_image[-2], y_image[-2]), (0, 200, 200), 3)
 
             x_image, y_image = [], []
             image_ref = frame
@@ -747,11 +747,14 @@ class Ui_MainWindow(object):
             ######## output file name
             save_name = self.saveEdit.text()
             wb.save(save_name + '.xls')
+            self.Fps_display.setText(_translate("MainWindow", "Saved"))
             dst = []
         except:
             msg = QMessageBox()
             msg.setWindowTitle("Error occured")
             msg.setText("Failed To excecute")
+            _translate = QtCore.QCoreApplication.translate
+            self.Fps_display.setText(_translate("MainWindow", "Failed"))
             x = msg.exec_()
 
 
