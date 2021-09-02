@@ -605,10 +605,7 @@ class Ui_MainWindow(object):
                                 h_real = real_co[2]
                                 sheet1.write(sr_no,6,float(X_real/(h_real + 1e-8)))
                                 sheet1.write(sr_no,7,float(Y_real/(h_real + 1e-8)))
-                                sheet1.write(sr_no,8,float(h_real))
-                                #if ID == 0:
-                                #X_plot.append(centerX)
-                                #Y_plot.append(centerY)
+                                #sheet1.write(sr_no,8,float(h_real))
                                 #######increment number
                                 sr_no = sr_no + 1
                             # If there are two detections having the same ID due to being too close,
