@@ -545,7 +545,7 @@ class Ui_MainWindow(object):
             msg.setWindowTitle("Previous info")
             msg.setText("File not found, Reconnnect and click on new connection")
             x = msg.exec_()
-            self.sock.close()
+            #self.sock.close()
             self.text_file_present = 1
 
     def Check_Email(self):
@@ -585,7 +585,7 @@ class Ui_MainWindow(object):
             list_of_vehicles.append("bicycle")
         if self.checkBox_Pedestrians.isChecked():
             list_of_vehicles.append("person")
-        if self.checkBox_Pedestrians.isChecked() == False and self.checkBox_Bicycle.isChecked() == False and self.checkBox_2W.isChecked() == False and self.checkBox_HMV.isChecked() == False and self.checkBox_Lmv.isChecked() == False:
+        if self.checkBox_Pedestrians.isChecked() == False or self.checkBox_Bicycle.isChecked() == False or self.checkBox_2W.isChecked() == False or self.checkBox_HMV.isChecked() == False or self.checkBox_Lmv.isChecked() == False:
             list_of_vehicles = ["car","bus","truck"]  ## Default classes
         dst = []
         ########## take data of coorinates from boxes 
@@ -600,32 +600,39 @@ class Ui_MainWindow(object):
                 dst.append([float(X_co[j]),float(Y_co[j])])
                 #if self.text_file_present == 1:
 
-            print("senfing src")
+            #print("senfing src")
             ############ sending src and dst
-            src = pickle.dumps(self.src_global)
-            self.sock.send(src)
-            print("senfing dst")
-            dst = pickle.dumps(dst)
-            self.sock.send(dst)
-            #### sending x_image , y_image
+            print("Gy to send",self.Gy_image)
             x_image = pickle.dumps(self.Gx_image)
-            self.sock.send(x_image)
+            self.sock.sendall(x_image)
+            time.sleep(1)
             y_image = pickle.dumps(self.Gy_image)
-            self.sock.send(y_image)
-            ####### sending IP and Email 
-            print("senfing email")
+            self.sock.sendall(y_image)
+            time.sleep(1)
+            ####### sending IP and Email
+            src = pickle.dumps(self.src_global)
+            self.sock.sendall(src)
+            time.sleep(1)
+            #print("senfing dst")
+            dst = pickle.dumps(dst)
+            self.sock.sendall(dst)
+            time.sleep(1)
+            #print("senfing email")
             Email = self.saveEdit.text()            #get from command line
             print("email",Email)
             Email = pickle.dumps(Email)
-            self.sock.send(Email)
+            self.sock.sendall(Email)
+            time.sleep(1)
             ############
             List = pickle.dumps(list_of_vehicles)
-            self.sock.send(List)
+            self.sock.sendall(List)
+            time.sleep(10)
+            
             msg = QMessageBox()
             msg.setWindowTitle("Data send")
             msg.setText("Data has been send. \n Please close the application.")
             x = msg.exec_()
-            self.sock.close()
+            #self.sock.close()
 
             #self.sock.close()
             #sys.exit()                                                      ########### ending connections 
@@ -647,7 +654,7 @@ class Ui_MainWindow(object):
      
     def Connect(self):
         #TCP_IP = self.X1_2.text()                        ##########     ip from text box
-        #self.TCP_SERVER_IP = 'localhost' 
+        
         #self.TCP_SERVER_IP = float(self.X1_2.text())
         #self.TCP_SERVER_PORT = 8080                                  ##########   fix port number of all Jetson 
         #Password = float(self.X1_2.text())               ##########    get password instead of port number
@@ -668,6 +675,8 @@ class Ui_MainWindow(object):
             #socket.AF_INET6
             self.TCP_SERVER_IP = str(self.X1_2.text())
             print(self.TCP_SERVER_IP, type(self.TCP_SERVER_IP))
+            #self.TCP_SERVER_IP = 'localhost' 
+            self.TCP_SERVER_PORT = 8080
             #self.TCP_SERVER_IP = 'localhost' 
         except Exception as e:
             print(e,"not detected")
