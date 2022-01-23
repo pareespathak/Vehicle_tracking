@@ -27,6 +27,7 @@ from email.mime.text import MIMEText
 import xlrd
 #python data to sheet
 import xlwt
+import shutil
 
 
 '''constant paramerters for OD
@@ -73,6 +74,15 @@ def drawDetectionBoxes(idxs, boxes, classIDs, confidences, frame,y_image,x_image
             c_y = y + h
             cv2.circle(frame, (c_x, c_y), 2, (0, 0xFF, 0), thickness=2)
 
+# define our clear function
+def clear():
+  
+    # for windows
+    if os.name == 'nt':
+        _ = os.system('cls')
+    else:
+        _ = os.system('clear')
+    
 #condition for tracking object and appending in sheet
 #object must be in the bounding area
 def boxInPreviousFrames(previous_frame_detections, current_box, current_detections):
@@ -133,6 +143,7 @@ def count_vehicles(idxs, boxes, classIDs, confidences, vehicle_count, previous_f
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
                     #text1 = "{}: {:.4f}".format(x,y)
                     #exporting data in sheet
+                    sheet1.write(sr_no,0,video_num)
                     sheet1.write(sr_no,1,ID)
                     sheet1.write(sr_no,2,num_frames)
                     sheet1.write(sr_no,3,int(centerX))
@@ -196,9 +207,9 @@ def process_frame(frame, outs, classes, confThreshold, nmsThreshold,video_width,
     return current_detections, previous_frame_detections, vehicle_count, sr_no
 
 def sheet_generator(loc):
+    print("into sheets")
     try:
         Fps = 30
-        #loc = ("date 19-8.xls")
         wb = xlrd.open_workbook(loc)
         sheet = wb.sheet_by_index(0)
         ## range = id no present 
@@ -303,9 +314,9 @@ def sheet_generator(loc):
             if name_id != -1:
                 save_name = 'sheets/generated output' + str(name_id)
                 wb1.save(save_name + '.xls')
-        return True
-    except:
         return False
+    except:
+        return True
 
 capture = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 ret, frame = capture.read()
@@ -314,16 +325,19 @@ path_file = 'parameters.txt'
 Check = os.path.isfile(path_file)
 video_num = 0
 daily_check = False
+daily_check =True
 while True:
+    time.sleep(2)
+    clear()
     current_date = datetime.now()
     times_now = int(current_date.strftime("%H%M%S"))
-    if  times_now <= 180000 and times_now >= 80000:
+    if  times_now <= 170000 and times_now >= 80000:
         print("Time satisfied")
         ## creating workbook
         wb = Workbook()
         # add_sheet is used to create sheet.
         sheet1 = wb.add_sheet("sheet 1", cell_overwrite_ok=True)
-        sheet1.write(0, 0, 'time of capture')
+        sheet1.write(0, 0, 'save name')
         sheet1.write(0, 1, 'id')
         sheet1.write(0, 2, 'frame_no')
         sheet1.write(0, 3, 'x')
@@ -346,79 +360,84 @@ while True:
         num_frames, vehicle_count, sr_no = 0, 0, 2
         print(Check)
         if Check == True:
-            with open(path_file) as f:
-                src = eval(f.readline())
-                dst = eval(f.readline())
-                x_image = eval(f.readline())
-                y_image = eval(f.readline())
-                list_of_vehicles = eval(f.readline())
-                if list_of_vehicles == None:
-                    list_of_vehicles = ["car","bus","truck"]
-                email =f.readline()
-                #msg['To'] = email                                    ## Default classes
-            if len(src) == len(dst):
-                homography_mat, Mask = cv2.findHomography(np.float32(src), np.float32(dst), method = cv2.RANSAC)
-                scale = homography_mat
+            try:
+                with open(path_file) as f:
+                    src = eval(f.readline())
+                    dst = eval(f.readline())
+                    x_image = eval(f.readline())
+                    y_image = eval(f.readline())
+                    list_of_vehicles = eval(f.readline())
+                    if list_of_vehicles == None:
+                        list_of_vehicles = ["car","bus","truck"]
+                    email =f.readline()
+                    #msg['To'] = email                                    ## Default classes
+                if len(src) == len(dst):
+                    homography_mat, Mask = cv2.findHomography(np.float32(src), np.float32(dst), method = cv2.RANSAC)
+                    scale = homography_mat
 
-            #Frame = 18,000                       
-            index_frame = 0        
-            #save_name = datetime.now(UTC)
-            save_name = video_num
-            ret, frame = capture.read()
-            video_num = video_num + 1
-            videoname = str(video_num)
-            out = cv2.VideoWriter(str(video_num)+'.mp4', fourcc, 30, (640,  480))
-            time_capture = str(datetime.now(UTC))
-            sheet1.write(1, 0, time_capture)
-            '''
-            current_date = datetime.now()
-            #100000 - 180000
-            times_now = int(current_date.strftime("%H%M%S"))
-            #if  times_now <= 160000 and times_now >= 80000:
-            '''
-            ####### conditions from time to break ?
-            while(ret == True and times_now <= 160000 and times_now >= 80000):
+                #Frame = 18,000                       
+                index_frame = 0        
+                #save_name = datetime.now(UTC)
+                save_name = video_num
+                ret, frame = capture.read()
+                #video_num = video_num + 1
+                out = cv2.VideoWriter('save_videos/'+str(video_num)+'.mp4', fourcc, 30, (640,  480))
+                time_capture = str(datetime.now(UTC))
+                sheet1.write(1, 0, save_name)
+                '''
                 current_date = datetime.now()
+                #100000 - 180000
                 times_now = int(current_date.strftime("%H%M%S"))
-                if index_frame <= 100:
-                    start_time = time.time() 						##start time of loop
-                    num_frames = num_frames + 1
-                    ret, frame = capture.read()
-                    if not ret:
-                        break
+                #if  times_now <= 160000 and times_now >= 80000:
+                '''
+                ####### conditions from time to break ?
+                print("into mail loop")
+                while(ret == True and times_now <= 160000 and times_now >= 80000):
+                    current_date = datetime.now()
+                    times_now = int(current_date.strftime("%H%M%S"))
+                    if index_frame <= 60:
+                        start_time = time.time() 						##start time of loop
+                        num_frames = num_frames + 1
+                        ret, frame = capture.read()
+                        if not ret:
+                            break
 
-                    blob = cv2.dnn.blobFromImage(frame, 1 / 255.0, (inputWidth, inputHeight), swapRB=True, crop = False)
-                    #get output layer
-                    outNames = net.getUnconnectedOutLayersNames()
-                    net.setInput(blob)
-                    outs = net.forward(outNames)
-                    current_detections, previous_frame_detections, vehicle_count, sr_no = process_frame(frame, outs, classes, CONF_THRESHOLD, NMS_THRESHOLD,
-                        video_width, video_height, vehicle_count, num_frames, y_image, x_image, sr_no, scale, X_plot, Y_plot)
-                    cv2.imshow('Press (q) to stop detections', frame)
-                    out.write(frame)
-                    if cv2.waitKey(1) & 0xFF == ord('q'):
-                        break
-                    #update previous frame detection
-                    previous_frame_detections.pop(0)
-                    #print(type(current_detections))
-                    #previous_frame_detections.append(spatial.KDTree(current_detections))
-                    previous_frame_detections.append(current_detections)
-                    index_frame = index_frame + 1
-                    #print(index_frame, "ind froame no")
-                else:
-                    video_num = video_num + 1
-                    videoname = str(video_num)
-                    print(video_num, "video num")
-                    out = cv2.VideoWriter(str(video_num)+'.mp4', fourcc, 30, (640,  480))
-                    index_frame = 0
-                    cv2.imwrite('detection.jpg', frame)
+                        blob = cv2.dnn.blobFromImage(frame, 1 / 255.0, (inputWidth, inputHeight), swapRB=True, crop = False)
+                        #get output layer
+                        outNames = net.getUnconnectedOutLayersNames()
+                        net.setInput(blob)
+                        outs = net.forward(outNames)
+                        current_detections, previous_frame_detections, vehicle_count, sr_no = process_frame(frame, outs, classes, CONF_THRESHOLD, NMS_THRESHOLD,
+                            video_width, video_height, vehicle_count, num_frames, y_image, x_image, sr_no, scale, X_plot, Y_plot)
+                        cv2.imshow('Press (q) to stop detections', frame)
+                        out.write(frame)
+                        if cv2.waitKey(1) & 0xFF == ord('q'):
+                            break
+                        #update previous frame detection
+                        previous_frame_detections.pop(0)
+                        #print(type(current_detections))
+                        #previous_frame_detections.append(spatial.KDTree(current_detections))
+                        previous_frame_detections.append(current_detections)
+                        index_frame = index_frame + 1
+                        #print(index_frame, "ind froame no")
+                        print(" inside loop", video_num)
+                    else:
+                        video_num = video_num + 1
+                        print(video_num, "video num")
+                        out = cv2.VideoWriter('save_videos/'+str(video_num)+'.mp4', fourcc, 30, (640,  480))
+                        index_frame = 0
+                        cv2.imwrite('detection.jpg', frame)
 
-            capture.release()
-            out.release()
-            cv2.destroyAllWindows()
-            ######## output file name
-            date_now = int(current_date.strftime("%Y%m%d"))
-            wb.save(str(date_now) + '.xls')
+                capture.release()
+                out.release()
+                cv2.destroyAllWindows()
+                ######## output file name
+                date_now = int(current_date.strftime("%Y%m%d"))
+                wb.save(str(date_now) + '.xls')
+            except:
+                #shutil.rmtree('parameters.txt')
+                print("error")
+               
         daily_check = True
 
 
@@ -429,4 +448,4 @@ while True:
             ### loading file
             date_now = int(current_date.strftime("%Y%m%d"))
             daily_check =  sheet_generator(str(date_now) + '.xls')
-            #daily_check = False #### done generating sheets 
+            #daily_check = False #### done generating sheets

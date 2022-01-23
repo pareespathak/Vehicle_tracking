@@ -1,7 +1,10 @@
+from email import message
 from logging import exception
 from multiprocessing.connection import wait
 import os
 import socket
+import struct
+from turtle import width
 import cv2
 import numpy
 import base64
@@ -27,6 +30,8 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 import shutil
+import imutils
+import struct
 
 '''email parameters 
 '''
@@ -54,7 +59,7 @@ server_socket.bind((Socket_IP, Socket_Port))
 server_socket.listen(1)
 print("listning to client for first input")
 #conn, address = server_socket.accept()
-#server_socket.settimeout(10)
+server_socket.settimeout(10)
 def recvall(sock, count):
   buf = b''
   while count:
@@ -69,6 +74,7 @@ def sendImages(conn):
     except:
       capture = cv2.VideoCapture(0)             ######change dshow parameter as per linux 
       ret, frame = capture.read()
+    '''
     stime = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')
     encode_param=[int(cv2.IMWRITE_JPEG_QUALITY),90]
     result, imgencode = cv2.imencode('.jpg', frame, encode_param)
@@ -78,7 +84,18 @@ def sendImages(conn):
     conn.sendall(length.encode('utf-8').ljust(64))
     conn.send(stringData)
     conn.send(stime.encode('utf-8').ljust(64))
+    '''
+    print("width = ", frame.shape)
     time.sleep(1)
+    #another type of code
+    ## take initial image size from cam and resize img on client side while displaying 
+    #ret, frame = capture.read()
+    #print(frame)
+    frame = imutils.resize(frame, width = 380)
+    a = pickle.dumps(frame)
+    message = struct.pack("Q", len(a)) + a
+    conn.sendall(message)
+    #print(a)
     print("image send from server")
     #return ret
     print("replace text file")
@@ -147,42 +164,6 @@ def sendImages(conn):
       print("3")
       #server_socket.settimeout(10)
       #print("current timeout 2=",server_socket.gettimeout())
-    '''
-    src = conn.recv(2048)
-    src = pickle.loads(src)
-    print("src recieved",src)
-    dst = conn.recv(2048)
-    dst = pickle.loads(dst)
-    print("dst recieved",dst)
-    ############# x_image , y_image
-    x_image = conn.recv(2048)
-    x_image = pickle.loads(x_image)
-    print("x_I recieved",x_image)
-    y_image = conn.recv(2048)
-    y_image = pickle.loads(y_image)
-    print("Y_I recieved",y_image)
-    ######## email and list of veh
-    email = conn.recv(2048)
-    email = pickle.loads(email)
-    print("email recieved",email)
-    list_of_vehicles = conn.recv(2048)
-    list_of_vehicles = pickle.loads(list_of_vehicles)
-    print("LOV ", list_of_vehicles)
-    print("2")
-    #file = open("", "w+")
-    with open('parameter.txt', 'w+') as f:
-        f.write(str(src))
-        f.write('\n')
-        f.write(str(dst))
-        f.write('\n')
-        f.write(str(x_image))
-        f.write('\n')
-        f.write(str(y_image))
-        f.write('\n')
-        f.write(str(list_of_vehicles))
-        f.write('\n')
-        f.write(str(email))
-    '''
 
 conn = False
 video_num = 1
