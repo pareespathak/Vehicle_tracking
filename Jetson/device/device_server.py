@@ -1,10 +1,6 @@
-from email import message
-from logging import exception
-from multiprocessing.connection import wait
 import os
 import socket
 import struct
-from turtle import width
 import cv2
 import numpy
 import base64
@@ -17,31 +13,15 @@ from xlwt import Workbook
 import csv
 import numpy as np
 import pytz
-import smtplib
-from email.message import EmailMessage
 # import the necessary packages
 import numpy as np
 from scipy import spatial
 #plotting the trajectory and bounding box
 from matplotlib import image
 from matplotlib import pyplot as plt
-from email import encoders
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
 import shutil
 import imutils
 import struct
-
-'''email parameters 
-'''
-email_session = smtplib.SMTP('smtp.gmail.com',587)
-email_session.starttls()
-email_session.login('autonomoustrafficanalysis@gmail.com', 'Auto@124')
-msg = MIMEMultipart()
-msg['Subject'] = 'Hello'
-msg['From'] = 'autonomoustrafficanalysis@gmail.com'
-#msg['To'] = 'pareespathak@gmail.com'
 
 '''initially setting up socket 
 '''
@@ -59,7 +39,7 @@ server_socket.bind((Socket_IP, Socket_Port))
 server_socket.listen(1)
 print("listning to client for first input")
 #conn, address = server_socket.accept()
-server_socket.settimeout(10)
+#server_socket.settimeout(10)
 def recvall(sock, count):
   buf = b''
   while count:
@@ -212,8 +192,7 @@ while True:
     #except socket.timeout:
     except Exception as e:
       print(e)
-      #print("timeout error")
-    
+      time.sleep(10)
     '''
     Check = os.path.isfile('parameters.txt')
     print("check =", Check)
@@ -289,8 +268,6 @@ while True:
         time.sleep(10)
       ### delete folder 
       ## recreate sheets folder for next day
-
-    '''    
-    print("end of connection ")    
-    print("inputs provoded = \n")    
-    #print(src,dst,list_of_vehicles)
+      '''
+ 
+    print("end of connection")
