@@ -14,3 +14,4 @@ imutils==0.5.4
 
 ## youtube link for installation with GPU
 ## Ip of address 2405:201:1003:f00a:50a6:5c5b:8f29:8b9d
+# fe80::6b92:c14a:6a79:4644
