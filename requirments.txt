@@ -17,4 +17,5 @@ imutils==0.5.4
 # fe80::6b92:c14a:6a79:4644
 # '2405:201:1003:f00a:4b85:a21:1215:2b25'
 2405:201:1003:f00a:8911:194a:ea71:fff0
-2402:8100:2457:f303:f005:4e76:3b81:993f
+2402:8100:2457:f303:f005:4e76:3b81:993f Take iP add of idea v6 first line after ifconfig 
+Requires low level of network (dose not work on jio fiber type connection) 
