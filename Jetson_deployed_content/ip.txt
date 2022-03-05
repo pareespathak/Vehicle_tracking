@@ -1,0 +1,31 @@
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+2: dummy0: <BROADCAST,NOARP> mtu 1500 qdisc noop state DOWN group default qlen 1000
+    link/ether 3e:bb:a9:ad:21:2f brd ff:ff:ff:ff:ff:ff
+3: eth0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc pfifo_fast state DOWN group default qlen 1000
+    link/ether 48:b0:2d:5b:bb:c7 brd ff:ff:ff:ff:ff:ff
+4: l4tbr0: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN group default qlen 1000
+    link/ether ee:0d:95:dc:20:71 brd ff:ff:ff:ff:ff:ff
+5: rndis0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc pfifo_fast master l4tbr0 state DOWN group default qlen 1000
+    link/ether ee:0d:95:dc:20:71 brd ff:ff:ff:ff:ff:ff
+6: usb0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc pfifo_fast master l4tbr0 state DOWN group default qlen 1000
+    link/ether ee:0d:95:dc:20:73 brd ff:ff:ff:ff:ff:ff
+7: wlan0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000
+    link/ether a4:6b:b6:06:b0:35 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.29.91/24 brd 192.168.29.255 scope global dynamic noprefixroute wlan0
+       valid_lft 2401sec preferred_lft 2401sec
+    inet6 2405:201:1003:f00a:50a6:5c5b:8f29:8b9d/64 scope global temporary dynamic 
+       valid_lft 3598sec preferred_lft 3598sec
+    inet6 2405:201:1003:f00a:4b85:a21:1215:2b25/64 scope global dynamic mngtmpaddr noprefixroute 
+       valid_lft 3598sec preferred_lft 3598sec
+    inet6 fe80::6b92:c14a:6a79:4644/64 scope link noprefixroute 
+       valid_lft forever preferred_lft forever
+8: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default 
+    link/ether 02:42:6e:3e:59:74 brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+
