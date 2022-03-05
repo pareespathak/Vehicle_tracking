@@ -21,3 +21,4 @@ imutils==0.5.4
 Requires low level of network (dose not work on jio fiber type connection) 
 2402:8100:2454:6c97:a425:c568:162:f1b8
 2402:8100:2454:6c97:d122:2067:a885:e3ea
+https://docs.google.com/document/d/1FDOrDiFXo3pXeneRbj1iqvwHgFUD3I76GAc2BD4j6vQ/edit?usp=sharing
