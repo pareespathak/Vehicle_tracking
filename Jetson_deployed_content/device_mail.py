@@ -48,17 +48,23 @@ msg = MIMEMultipart()
 msg['Subject'] = 'Reports of Traffic'
 msg['From'] = 'autonomoustrafficanalysis@gmail.com'
 #msg['To'] = 'pareespathak@gmail.com'
+mssg = MIMEMultipart()
+mssg['Subject'] = 'Establishing connection on startup'
+mssg['From'] = 'autonomoustrafficanalysis@gmail.com'
+mssg['To'] = 'pareespathak@gmail.com'                        ##################input from user 
+my_message = mssg.as_string()
+email_session.sendmail('autonomoustrafficanalysis@gmail', 'pareespathak@gmail.com' ,my_message)
 count_check = 0
 video_num = 1
 while True:
     try:
-        Check = os.path.isfile('parameter.txt')
+        Check = os.path.isfile('/home/parees/Downloads/Vehicle_tracking-main/Jetson/device/parameter.txt')
         time.sleep(2)
         clear()
         print("check =", Check)
         print("running main code")
         if Check == True:
-            with open('parameter.txt') as f:
+            with open('/home/parees/Downloads/Vehicle_tracking-main/Jetson/device/parameter.txt') as f:
                 src = eval(f.readline())
                 dst = eval(f.readline())
                 x_image = eval(f.readline())
@@ -73,50 +79,57 @@ while True:
 
         current_date = datetime.now()
         times_now = int(current_date.strftime("%H%M%S"))
-        if  times_now <= 180000 and times_now >= 110000 and Check == True:
-            #check file name
-            path_file = 'save_videos/'+ str(video_num)+'.mp4'
-            Check = os.path.isfile(path_file)
-            print("loop")
-            if Check == True:
-                ##############  Size less than 20 mb
-                file = path_file
-                attachment = open(file,'rb')
-                obj = MIMEBase('application','octet-stream')
-                obj.set_payload((attachment).read())
-                encoders.encode_base64(obj)
-                obj.add_header('Content-Disposition',"attachment; filename= "+file)
-                msg.attach(obj)
-                my_message = msg.as_string()
-                print("sending mail")
-                email_session.sendmail('autonomoustrafficanalysis@gmail', emailid, my_message)
-                video_num = video_num + 1
-                msg = MIMEMultipart()
-                ## prepare to send
-                print(video_num)
-                try:
-                    os.remove(file)
-                    #video_num = video_num + 1
-                except Exception as e:
-                    print("video_num cannot be deletted ", video_num + 1)
-                    print(e)
+        ### change later
+        #if  times_now <= 180000 and times_now >= 110000 and Check == True:
+        try:
+            if  times_now <= 114500 and times_now >= 100000 and Check == True:
+
+                #check file name
+                path_file = 'save_videos/'+ str(video_num)+'.mp4'
+                Check = os.path.isfile(path_file)
+                print("loop")
+                if Check == True:
+                    ##############  Size less than 20 mb
+                    file = path_file
+                    attachment = open(file,'rb')
+                    obj = MIMEBase('application','octet-stream')
+                    obj.set_payload((attachment).read())
+                    encoders.encode_base64(obj)
+                    obj.add_header('Content-Disposition',"attachment; filename= "+file)
+                    msg.attach(obj)
+                    my_message = msg.as_string()
+                    print("sending mail")
+                    email_session.sendmail('autonomoustrafficanalysis@gmail', emailid, my_message)
+                    video_num = video_num + 1
+                    msg = MIMEMultipart()
+                    ## prepare to send
+                    print(video_num)
+                    try:
+                        print("done sending video loop")
+                        os.remove(file)
+                        #video_num = video_num + 1
+                    except Exception as e:
+                        print("video_num cannot be deletted ", video_num + 1)
+                        print(e)
 
                 ## delete video file
+        except:
+            print("video cannot be send")
 
-    ########### sending sheets
-        length = os.listdir('sheets')
+        ########### sending sheets
+        length = os.listdir('/home/parees/Downloads/Vehicle_tracking-main/Jetson/device/sheets')
         size_of_folder = len(length)
-        if times_now >= 190000 and times_now <= 240000 and size_of_folder >= 1:
+        if times_now >= 123000 and times_now <= 240000 and size_of_folder >= 1:
             #file_content = os.listdir()
             file_size = 0 
-            length = os.listdir('sheets')
+            length = os.listdir('/home/parees/Downloads/Vehicle_tracking-main/Jetson/device/sheets')
             print(length)
             sr_no = 0
             for i in length:
                 print(len(length))
                 #save_name = 'sheets/generated_output' + str(i)+'.xls'
                 print(i)
-                save_name = 'sheets/' + i 
+                save_name = '/home/parees/Downloads/Vehicle_tracking-main/Jetson/device/sheets/' + i 
 
                 #if os.path.isfile(save_name) == True:
                 #    file_size = file_size + (os.path.getsize(save_name))
@@ -140,8 +153,8 @@ while True:
 
             try:
                 print("sending")
-                shutil.rmtree('sheets')
-                os.mkdir('sheets')
+                shutil.rmtree('/home/parees/Downloads/Vehicle_tracking-main/Jetson/device/sheets')
+                os.mkdir('/home/parees/Downloads/Vehicle_tracking-main/Jetson/device/sheets')
             except Exception as e:
                 print(e)
                 time.sleep(10)

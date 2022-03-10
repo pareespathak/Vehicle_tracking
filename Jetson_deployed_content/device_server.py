@@ -22,18 +22,41 @@ from matplotlib import pyplot as plt
 import shutil
 import imutils
 import struct
+import sys
 
+# Prints in a console/terminal
+print('Default mode: Prints on a console.')
+
+# Store the reference of original standard output into variable
+original_stdout = sys.stdout 
+
+# Create or open an existing file in write mode
+with open('log.txt', 'w') as file:
+    # Set the stdout to file object
+    sys.stdout = file
+    print('File Mode: Print text to a file. aur errors')
+    
+    # Set the stdout back to the original or default mode
+    sys.stdout = original_stdout
+
+print('Default Mode: Prints again on a console.')
+
+######
 '''initially setting up socket 
 '''
-server_socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+#server_socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 Host_name = socket.gethostname()
 Host_IP = socket.gethostbyname(Host_name)
+
+print(socket.getaddrinfo("example.com", 5005))
 print("name", Host_name, "ip", Host_IP)
 #Socket_IP = 'localhost'
 #Socket_IP = '2405:201:1003:f00a:50a6:5c5b:8f29:8b9d'
 Socket_IP = '2405:201:1003:f00a:4b85:a21:1215:2b25'
 Socket_IP = '2402:8100:2457:f303:f005:4e76:3b81:993f'
 Socket_IP = '2402:8100:2454:6c97:d122:2067:a885:e3ea'
+Socket_IP = '192.168.43.176'
 ## USE ip adrr show command and use first part 2405:201:1003:f00a:50a6:5c5b:8f29:8b9d/64
 Socket_Port = 5005
 ## bind 
@@ -55,7 +78,7 @@ def recvall(sock, count):
   return buf
 def sendImages(conn):
     try:
-      frame = cv2.imread("detection.jpg", cv2.IMREAD_COLOR)
+      frame = cv2.imread("/home/parees/Downloads/Vehicle_tracking-main/Jetson/device/detection.jpg", cv2.IMREAD_COLOR)
     except:
       capture = cv2.VideoCapture(0)             ######change dshow parameter as per linux 
       ret, frame = capture.read()
@@ -76,7 +99,7 @@ def sendImages(conn):
     ## take initial image size from cam and resize img on client side while displaying 
     #ret, frame = capture.read()
     #print(frame)
-    frame = imutils.resize(frame, width = 320)
+    #frame = imutils.resize(frame, width = 320)
     print("shape after compression  ", frame.shape)
     a = pickle.dumps(frame)
     message = struct.pack("Q", len(a)) + a
@@ -87,7 +110,7 @@ def sendImages(conn):
     print("replace text file")
     ######### src and dst
     print("1")
-    with open('parameter.txt', 'w+') as f:
+    with open('/home/parees/Downloads/Vehicle_tracking-main/Jetson/device/parameter.txt', 'w+') as f:
       print("2")
       #server_socket.settimeout(1000)
       #print("current timeout=",server_socket.gettimeout())

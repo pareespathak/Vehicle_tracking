@@ -20,8 +20,8 @@ from scipy import spatial
 #from matplotlib import image
 import xlrd
 #python data to sheet
-import xlwt
-import shutil
+#import xlwt
+#import shutil
 
 '''
 camera paraeters
@@ -52,32 +52,39 @@ def gstreamer_pipeline(
             display_height,
         )
     )
-
+#capture = cv2.VideoCapture(gstreamer_pipeline(flip_method=0), cv2.CAP_GSTREAMER)
+#capture = cv2.VideoCapture('/home/parees/Downloads/Vehicle_tracking-main/Jetson/device/delhi_dataset_Trim.mp4')
+#ret, frame = capture.read()
+#cv2.imwrite('/home/parees/Downloads/Vehicle_tracking-main/Jetson/device/detection.jpg', frame)
 '''constant paramerters for OD
 # CONF_THRESHOLD is confidence threshold. Only detection with confidence greater than this will be retained
 # NMS_THRESHOLD is used for non-max suppression
 # #NMS to overcome the multiple boxes over single object
 '''
-UTC = pytz.utc
-CONF_THRESHOLD = 0.3
-NMS_THRESHOLD = 0.4
-X_plot, Y_plot = 0, []
-'''reading from coco'''
-with open('cocos.names', 'rt') as f:
-    classes = f.read().rstrip('\n').split('\n')
-    LABELS = classes
+try:
+    UTC = pytz.utc
+    CONF_THRESHOLD = 0.3
+    NMS_THRESHOLD = 0.4
+    X_plot, Y_plot = 0, []
+    '''reading from coco'''
+    with open('/home/parees/Downloads/Vehicle_tracking-main/Jetson/device/cocos.names', 'rt') as f:
+        classes = f.read().rstrip('\n').split('\n')
+        LABELS = classes
 
-np.random.seed(42)
-COLORS = np.random.randint(0, 255, size=(len(LABELS), 3), dtype="uint8")
-FRAMES_BEFORE_CURRENT = 10
-inputWidth, inputHeight = 416, 416
-# Load the networO-SeqCNNSLAMk with YOLOv3 weights and config using darknet framework
-net = cv2.dnn.readNet("yolov4.weights", "yolov4.cfg", "darknet")
-#for gpu setup
-cuda = True
-if cuda:
-    net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
-    net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
+    np.random.seed(42)
+    COLORS = np.random.randint(0, 255, size=(len(LABELS), 3), dtype="uint8")
+    FRAMES_BEFORE_CURRENT = 10
+    inputWidth, inputHeight = 416, 416
+    # Load the networO-SeqCNNSLAMk with YOLOv3 weights and config using darknet framework  yolov4-tiny.weights
+    #net = cv2.dnn.readNet("/home/parees/Downloads/Vehicle_tracking-main/Jetson/device/yolov4.weights", "/home/parees/Downloads/Vehicle_tracking-main/Jetson/device/yolov4.cfg", "darknet")
+    net = cv2.dnn.readNet("/home/parees/Downloads/Vehicle_tracking-main/Jetson/device/yolov4-tiny.weights", "/home/parees/Downloads/Vehicle_tracking-main/Jetson/device/tiny_y4.cfg", "darknet")
+    #for gpu setup
+    cuda = True
+    if cuda:
+        net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
+        net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
+except:
+    print("error in loading model or cocos")
 
 '''Functions used '''
 # PURPOSE: Draw all the detection boxes with a green dot at the center
@@ -230,7 +237,7 @@ def process_frame(frame, outs, classes, confThreshold, nmsThreshold,video_width,
     return current_detections, previous_frame_detections, vehicle_count, sr_no
 
 def sheet_generator(loc):
-    print("into sheets")
+    #print("into sheets")
     try:
         Fps = 30
         wb = xlrd.open_workbook(loc)
@@ -286,7 +293,7 @@ def sheet_generator(loc):
                         sheet1.write(j, 12, 0)
                         sheet1.write(j, 13, 0)
                         j = j + 1
-                        print("done")
+                        #print("done")
                     else:
                         sheet1.write(j, 1, id_no)
                         sheet1.write(j, 2, sheet.cell_value(k, 2))
@@ -300,12 +307,9 @@ def sheet_generator(loc):
                         yn = sheet.cell_value(k, 7)
                         Fn = sheet.cell_value(k, 2)
                         time = Fn - Fp
-                        #print(time)
-                        time = float(time/Fps)
-                        #print("time",time)
+                        time = float(time/Fps)                        
                         ### time cummulative
                         time_cu = time_cu + time
-                        #print(time_cu)
                         ############### delta Y
                         delta_Y = yn - yp
                         ############## insta velo
@@ -315,12 +319,7 @@ def sheet_generator(loc):
                             insta_velo = 0
                         ########### avg velo
                         avg_velo = yn - Y_B
-                        #print(avg_velo)
                         avg_velo = float(avg_velo*18/(time_cu*5))
-                        #print("y1", delta_Y)
-                        #print("time_cu", time_cu)
-                        #print("insta_velo", insta_velo)
-                        #print(avg_velo)
                         sheet1.write(j, 9, time)
                         sheet1.write(j, 10, time_cu)
                         sheet1.write(j, 11, delta_Y)
@@ -331,30 +330,35 @@ def sheet_generator(loc):
                         j = j + 1
 
             if name_id != -1:
-                save_name = 'sheets/generated_output' + str(name_id)
+                save_name = '/home/parees/Downloads/Vehicle_tracking-main/Jetson/device/sheets/generated_output' + str(name_id)
                 wb1.save(save_name + '.xls')
         return False
     except:
         return True
 
-#capture = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-capture = cv2.VideoCapture(gstreamer_pipeline(flip_method=0), cv2.CAP_GSTREAMER)
-capture = cv2.VideoCapture('/home/parees/Downloads/Vehicle_tracking-main/Jetson/device/delhi_dataset_Trim.mp4')
-ret, frame = capture.read()
-cv2.imwrite('detection.jpg', frame)
-path_file = 'parameter.txt'
+try:
+    capture = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    capture = cv2.VideoCapture(gstreamer_pipeline(flip_method=0), cv2.CAP_GSTREAMER)
+    capture = cv2.VideoCapture('/home/parees/Downloads/Vehicle_tracking-main/Jetson/device/delhi_dataset_Trim.mp4')
+    ret, frame = capture.read()
+    cv2.imwrite('/home/parees/Downloads/Vehicle_tracking-main/Jetson/device/detection.jpg', frame)
+    path_file = '/home/parees/Downloads/Vehicle_tracking-main/Jetson/device/parameter.txt'
+except:
+    print("problem in writing or capturing image")
+
 Check = os.path.isfile(path_file)
 video_num = 0
 daily_check = False
 daily_check =True
+
 while True:
     time.sleep(2)
     clear()
     current_date = datetime.now()
     times_now = int(current_date.strftime("%H%M%S"))
     #if  times_now <= 170000 and times_now >= 80000:                    ##### change later 
-    if  times_now >= 80000 and times_now < 191200:    ##### change later 
-        print("Time satisfied")
+    if  times_now >= 112000 and times_now < 125900:    ##### change later 
+        #print("Time satisfied")
         ## creating workbook
         wb = Workbook()
         # add_sheet is used to create sheet.
@@ -372,7 +376,7 @@ while True:
         sheet1.write(0, 11, 'time for velo calculation')
         video_width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH))
         video_height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        print("printing video widths", video_height, video_width)
+        #print("printing video widths", video_height, video_width)
         '''capture_width=1920,
         capture_height=1080,
         display_width=960,
@@ -385,7 +389,7 @@ while True:
         # previous_frame_detections = [spatial.KDTree([(0,0)])]*FRAMES_BEFORE_CURRENT # Initializing all trees
         
         num_frames, vehicle_count, sr_no = 0, 0, 2
-        print(Check)
+        #print(Check)
         if Check == True:
             try:
                 with open(path_file) as f:
@@ -408,7 +412,7 @@ while True:
                 save_name = video_num
                 ret, frame = capture.read()
                 #video_num = video_num + 1
-                out = cv2.VideoWriter('save_videos/'+str(video_num)+'.mp4', fourcc, 30, (960, 540))
+                out = cv2.VideoWriter('/home/parees/Downloads/Vehicle_tracking-main/Jetson/device/save_videos/'+str(video_num)+'.mp4', fourcc, 30, (960, 540))
                 time_capture = str(datetime.now(UTC))
                 sheet1.write(1, 0, save_name)
                 '''
@@ -420,9 +424,8 @@ while True:
                 ####### conditions from time to break ?
                 print("into mail loop")
                 #while(ret == True and times_now <= 160000 and times_now >= 80000):     ### change later 
-                while(ret == True and times_now >= 80000 and times_now <= 191200):     ### change later 
-                    current_date = datetime.now()
-                    times_now = int(current_date.strftime("%H%M%S"))
+                #if  times_now >= 100000 and times_now < 101500:
+                while(ret == True):     ### change later 
                     if index_frame <= 150:
                         start_time = time.time() 						##start time of loop
                         num_frames = num_frames + 1
@@ -437,7 +440,8 @@ while True:
                         outs = net.forward(outNames)
                         current_detections, previous_frame_detections, vehicle_count, sr_no = process_frame(frame, outs, classes, CONF_THRESHOLD, NMS_THRESHOLD,
                             video_width, video_height, vehicle_count, num_frames, y_image, x_image, sr_no, scale, X_plot, Y_plot)
-                        cv2.imshow('Press (q) to stop detections', frame)
+
+                        #cv2.imshow('Press (q) to stop detections', frame)
                         out.write(frame)
                         if cv2.waitKey(1) & 0xFF == ord('q'):
                             break
@@ -446,14 +450,21 @@ while True:
                         previous_frame_detections.append(current_detections)
                         index_frame = index_frame + 1
                         #print(index_frame, "ind froame no")
-                        print(" inside loop", video_num, index_frame)
+                        #print(" inside loop", video_num, index_frame)
                     else:
                         clear()
                         video_num = video_num + 1
                         print(video_num, "video num")
-                        out = cv2.VideoWriter('save_videos/'+str(video_num)+'.mp4', fourcc, 30, (960, 540))
+                        out = cv2.VideoWriter('/home/parees/Downloads/Vehicle_tracking-main/Jetson/device/save_videos/'+str(video_num)+'.mp4', fourcc, 30, (960, 540))
                         index_frame = 0
-                        cv2.imwrite('detection.jpg', frame)
+                        current_date = datetime.now()
+                        times_now = int(current_date.strftime("%H%M%S"))
+                        if times_now >= 112000 and times_now < 125900:
+                            ret = True
+                        else:
+                            ret = False
+
+                        cv2.imwrite('/home/parees/Downloads/Vehicle_tracking-main/Jetson/device/detection.jpg', frame)
 
                 capture.release()
                 out.release()
@@ -461,7 +472,7 @@ while True:
                 ######## output file name
                 date_now = int(current_date.strftime("%Y%m%d"))
                 print("saving data")
-                wb.save("HELLO"+ '.xls')
+                wb.save("/home/parees/Downloads/Vehicle_tracking-main/Jetson/device/HELLO"+ '.xls')
                 #wb.save(str(date_now) + '.xls')
                 print("savED data")
             except:
@@ -477,5 +488,5 @@ while True:
             print("generate sheets")
             ### loading file
             date_now = int(current_date.strftime("%Y%m%d"))
-            daily_check =  sheet_generator("HELLO"+ '.xls')
+            daily_check =  sheet_generator("/home/parees/Downloads/Vehicle_tracking-main/Jetson/device/HELLO"+ '.xls')
             #daily_check = False #### done generating sheets
